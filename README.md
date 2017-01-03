@@ -43,7 +43,7 @@ Please email one of the graders if you have any questions.
 It also has the capability of emailing out reports (the contents of that
 file) to each user in bulk.
 
-## How to Use
+## Overview
 
 Sprint is a command line tool which takes as arguments a list of 
 subcommands for it to execute. Running `sprint` by itself is equivalent
@@ -65,7 +65,7 @@ described below:
     on manual deduction scripts
 - `help`: Prints a usage message
 
-### Deduction Scripts
+## Deduction Scripts
 
 The grunt work of grading is performed by deduction scripts written by
 the grader. These scripts should be stored in the same directory as the
@@ -81,10 +81,9 @@ Here is the contents of an example script `dsh.example.sh`:
 # ASG lab0
 # USER avalera
 
-ASG="lab0"
 DFILE=".d.example.f"
 
-...
+# YOUR CODE HERE
 ```
 
 The first three lines after the `#!` should be exactly of the format 
@@ -99,18 +98,22 @@ dependencies that not all users have access to. If a script should be
 executed by everyone, the line should read `# USER all`.
 
 A deduction script should write it's output to a file `.d.*.f` in the
-current directory. Each line of output should be of the form 
-`1 / 2 | Description (Output)`, exactly as it would appear on the grade 
-file, where the first number is the points earned and the second the 
-points possible for that specific deduction. The description should 
-describe either the reason for either the points earned or the
-deduction, and can include an optional command output in parenthesis to
-highlight this (such as the output of a diff of incorrectness, or an 
-incorrectly named filename compared to the expected value). Command
-output is generally used for automatic deduction scripts, which will be
-discussed in more detail below. Multiple output lines in a deduction 
-file are used to separate points to make it easier for the student to 
-understand.
+current directory. (The filename for this file is canonically stored in
+the shell variable `$DFILE` at the beginning of the script, as shown 
+above.) Each line of output should be of the form:
+
+`1 / 2 | Description (Output)`
+
+This is exactly as it would appear on the grade file, the first number 
+being the points earned and the second the points possible for that 
+specific deduction. The description should describe either the reason 
+for either the points earned or the deduction, and can include an 
+optional command output in parenthesis to highlight this (such as the 
+output of a diff of incorrectness, or an incorrectly named filename 
+compared to the expected value). Command output is generally used for 
+automatic deduction scripts, which will be discussed in more detail 
+below. Multiple output lines in a deduction file are used to separate 
+points to make it easier for the student to understand.
 
 A deduction file also has access to write to the notes file `.notes.f`,
 which is an optional list of notes specific to the user, and will appear
@@ -120,4 +123,70 @@ optional command outputs for manual deduction scripts.
 
 ### Manual vs. Automatic Deduction Scripts
 
-**TODO: Add info here**
+Aside from the format described above, the contents of the deduction
+script is mainly up to the developer to implement. For reference, there
+are two general classes of deduction scripts, those that are meant to be
+ran automatically and those that are manual and require user 
+interaction. These two classes have different purposes, and a good 
+grading rubric should include both of these types of scripts.
+
+Automatic scripts are easier to program and run, but only handle basic 
+operations such as diff testing, grepping for specific phrases, and
+checking basic properties of the submission. Automatic scripts should be
+designed to be idempotent, meaning they can be ran over and over again
+with no change to the results. Thus, an automatic script will usually
+begin by deleting it's deduction file to generate a new one from
+scratch. Automatic scripts are meant to be changed often, tweaking the
+commands as new errors are discovered.
+
+Example of code for an Automatic Deduction Script
+```bash
+DFILE=".d.automatic.f"
+STUDENT=$(basename $(pwd))
+
+rm -f $DFILE
+for FILE in README Makefile HelloWorld.java; do
+  if head -n 10 $FILE | grep -pQ $STUDENT; then
+    echo "1 / 1 | File $FILE contains student identifier" » $DFILE
+  else
+    echo "0 / 1 | File $FILE missing student identifier" » $DFILE
+  fi
+done
+```
+
+Contrary to that, manual scripts are meant to be interactive, and the 
+bulk of the grading should be done by the user, with the script simply
+making the submission easier to grade by automating frequently used 
+commands. Once a manual script has finished with a student's submission,
+the grade is considered finalized. This is why a manual script should
+only be run if a deduction file does not exist for it yet (and regrading
+a submission is done by manually deleting the deduction file). 
+The structure of the script should generally be several iterations of 
+running a command to produce output, then prompting the user for input
+to respond to that output, optionally allowing the user to select from 
+several options to streamline grading and maintain consistency. In
+general, manual scripts should not be modified except in ways that will
+not make the already graded work obsolete.
+
+Example of code for a Manual Deduction Script
+```bash
+DFILE=".d.manual.f"
+STUDENT=$(basename $(pwd))
+
+if [[ -e $DFILE ]]; then
+  echo "Already graded student $STUDENT"
+  cat $DFILE
+else
+  cat Makefile
+  echo -n "How many points is this this worth? "
+  PTS=""
+  read $PTS
+  if [[ $PTS -ge 5 ]]; then
+    echo "5 / 5 | Full points on Makefile" » $DFILE
+  else
+    echo -n "What is the description? "
+    read $DESC
+    echo "$PTS / 5 | $DESC" » $DFILE
+  fi
+fi
+```
