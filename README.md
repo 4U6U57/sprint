@@ -1,16 +1,16 @@
 # Sprint Grading Script
 
-Sprint - faster than running
+*Sprint - faster than running*
 
-Sprint is an automated grading script written in *csh* for the 
+Sprint is an automated grading script written in *bash* for the 
 *unix.ucsc.edu* timeshare. It was originally written for the 
 [CMPS 12B Spring 2016]
 (https://github.com/legendddhgf/cmps012b-s16-scripts) 
 quarter.
 
 Sprint is no longer under development, and to my knowledge, is not being
-used by anyone. Feel free to reference it as an interesting piece of csh
-code from a time before I knew how bad csh was compared to bash.
+used by anyone. Feel free to reference it as an interesting piece of
+code that I wrote in a hurry.
 
 ## Output Format
 
@@ -27,7 +27,7 @@ FILES:    HelloWorld.java README Makefile
 SCORE:    19 / 20 (95%)
 AVERAGE:  16 / 20 (80%)
 
-GRADE BREAKDOWM:
+GRADE BREAKDOWN:
 2 / 2 | Makefile cleans correctly
 3 / 4 | Some files named incorrectly (README.txt -> README)
 ...
