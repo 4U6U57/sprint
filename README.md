@@ -98,10 +98,26 @@ of grading are assigned to specific users, or if the scripts contain
 dependencies that not all users have access to. If a script should be 
 executed by everyone, the line should read `# USER all`.
 
-A deduction file should write it's output to a file `.d.*.f` in the
+A deduction script should write it's output to a file `.d.*.f` in the
 current directory. Each line of output should be of the form 
-`1 / 2 | Description`, exactly as it would appear on the grade file, 
-where the first number is the points earned and the second the points
-possible for that specific deduction. A single deduction file can write 
-multiple lines of output to differentiate different segments of the 
-graded work.
+`1 / 2 | Description (Output)`, exactly as it would appear on the grade 
+file, where the first number is the points earned and the second the 
+points possible for that specific deduction. The description should 
+describe either the reason for either the points earned or the
+deduction, and can include an optional command output in parenthesis to
+highlight this (such as the output of a diff of incorrectness, or an 
+incorrectly named filename compared to the expected value). Command
+output is generally used for automatic deduction scripts, which will be
+discussed in more detail below. Multiple output lines in a deduction 
+file are used to separate points to make it easier for the student to 
+understand.
+
+A deduction file also has access to write to the notes file `.notes.f`,
+which is an optional list of notes specific to the user, and will appear
+below the grade breakdown as shown in the grade file example in the 
+previous section. Notes are generally used as a substitution for
+optional command outputs for manual deduction scripts.
+
+### Manual vs. Automatic Deduction Scripts
+
+**TODO: Add info here**
