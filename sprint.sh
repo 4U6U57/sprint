@@ -9,6 +9,45 @@ ASG="$(basename $PWD)"
 ASGBIN="$CLASSDIR/bin/$ASG"
 ASGDIR="$CLASSDIR/$ASG"
 SEPARATE="=================================================="
+PROG="$(basename $0)"
+
+# Standard library
+String_AllCaps() {
+  echo $@ | tr [a-z] [A-Z]
+}
+Echo_Warning() {
+  echo "WARNING: $@"
+}
+ForAll() {
+  CLASSNUM=$(echo $CLASS | cut -d '0' -f 2 | cut -d '-' -f 1)
+  cd $ASGDIR
+  for STUDENT in $(ls -d */); do
+    STUDENTDIR=$ASGDIR/$STUDENT
+    STUDENT=$(basename $STUDENT /)
+    cd $STUDENTDIR
+    #echo "$SEPARATE"
+    #pwd
+    $@
+  done
+}
+score() {
+  SCOREFILE=".score.f"
+  case "$@" in
+    (init)
+      echo "0" > $SCOREFILE
+      ;;
+    (get)
+      cat $SCOREFILE
+      ;;
+    ([0-9]*)
+      echo $(($(score get) + ($@))) > $SCOREFILE
+      ;;
+    (*)
+      EchoWarning "score: Invalid score $@ written for $STUDENT"
+      ;;
+  esac
+}
+
 
 # Read arguments
 FUNC=""
@@ -22,59 +61,28 @@ else
       FUNC+=$ARG
       FUNC+=" "
     else
-      echo "ERROR: $ARG is not a valid sprint argument"
+      EchoWarning "$ARG is not a valid $PROG argument"
     fi
   done
 fi
 
 # Print welcome message
-echo; echo; echo; echo; echo
-echo $SEPARATE
-echo "SPRINT - faster than running"
-echo "CLASS  = $CLASS"
-echo "ASG    = $ASG"
-echo "MODE   = $FUNC"
-echo $SEPARATE
+
+welcome() {
+  echo; echo; echo; echo; echo
+  echo $SEPARATE
+  echo "$(String_AllCaps $PROG) - faster than running"
+  echo "CLASS  = $CLASS"
+  echo "ASG    = $ASG"
+  echo "MODE   = $FUNC"
+  echo $SEPARATE
+}
+welcome $1
 
 # Declare all functions
 
-verbose() {
-  VERBOSE=true
-}
-
-forall() {
-  CLASSNUM=$(echo $CLASS | cut -d '0' -f 2 | cut -d '-' -f 1)
-  cd $ASGDIR
-  for STUDENT in $(ls -d */); do
-    STUDENTDIR=$ASGDIR/$STUDENT
-    STUDENT=$(basename $STUDENT /)
-    cd $STUDENTDIR
-    #echo "$SEPARATE"
-    #pwd
-    $@
-  done
-}
-
-score() {
-  SCOREFILE=".score.f"
-  case "$@" in
-    init)
-      echo "0" > $SCOREFILE
-      ;;
-    get)
-      cat $SCOREFILE
-      ;;
-    [0-9]*)
-      echo $(($(score get) + ($@))) > $SCOREFILE
-      ;;
-    *)
-      echo "score: Invalid score written $@"
-      ;;
-  esac
-}
-
 deduct() {
-  forall rm -f $GRADEFILE
+  ForAll rm -f $GRADEFILE
   DSHBLANK="dsh.blank.sh"
   cd $ASGBIN
   echo "#!/bin/bash" > $DSHBLANK
@@ -86,12 +94,12 @@ deduct() {
       echo "DEDUCTSHELL $DSH ignored: $(grep -P 'CLASS' $DSH)"
     elif ! grep -P "ASG" $DSH | grep -Pq "$ASG"; then
       echo "DEDUCTSHELL $DSH ingored: $(grep -P 'ASG' $DSH)"
-    elif grep -P 'USER' $DSH | grep -Pq "all"; then
+    elif grep -P 'USER' $DSH | grep -Pq "\*"; then
       echo "DEDUCTSHELL $DSH executed: set for all USERs"
-      forall $ASGBIN/$DSH
+      ForAll $ASGBIN/$DSH
     elif grep -P 'USER' $DSH | grep -Pq "$USER"; then
       echo "DEDUCTSHELL $DSH executed: recognized USER $USER"
-      forall $ASGBIN/$DSH
+      ForAll $ASGBIN/$DSH
     else
       echo "DEDUCTSHELL $DSH ignored: $(grep -P 'USER' $DSH)"
     fi
@@ -106,7 +114,7 @@ compile() {
   INFOFILE="$ASGBIN/info.f"
   NOTESFILE=".notes.f"
   ASGSCORE=20
-  forall touch $DFILEBLANK
+  ForAll touch $DFILEBLANK
   scoregen() {
     score init
     for DFILE in $DFILEPAT; do
@@ -115,7 +123,7 @@ compile() {
       done <$DFILE
     done
   }
-  forall scoregen
+  ForAll scoregen
   scorecap() {
     if [[ $(score get) -gt $ASGSCORE ]]; then
       SCORECAP=$(($ASGSCORE - $(score get)))
@@ -127,28 +135,39 @@ compile() {
       echo "$SCORECAP / X | OVERRIDE: Score less than 0" > $DFILEBLANK
     fi
   }
-  forall scorecap
+  ForAll scorecap
   CLASSCOUNT=0
   SCORETOTAL=0
   makeavg(){
     CLASSCOUNT=$(($CLASSCOUNT + 1))
     SCORETOTAL=$(($SCORETOTAL + $(score get)))
   }
-  forall makeavg
+  ForAll makeavg
   CLASSAVG=$(($SCORETOTAL / $CLASSCOUNT))
+  makegraders() {
+    GRADERFILE="$ASGBIN/graders.txt"
+    GRADERSPACE=""
+    while read GRADER; do
+      echo "$GRADERSPACE $(getent passwd $GRADER | cut -d ":" -f 5) <$GRADER>"
+      GRADERSPACE="         "
+    done <$GRADERFILE
+  }
+  makepercent() {
+    echo $(($1 * 100 / $2))%
+  }
   makeintro() {
     rm -f $GRADEFILE
     STUDENTLS=$(ls -m)
     echo "CLASS:    $CLASS" >> $GRADEFILE
     echo "ASG:      $ASG" >> $GRADEFILE
-    echo "GRADERS:  Isaak Joseph Cherdak <icherdak>" >> $GRADEFILE
-    echo "      August Salay Valera <avalera>" >> $GRADEFILE
+    echo -n "GRADERS:  " >> $GRADEFILE
+    makegraders >> $GRADEFILE
     echo "STUDENT:  $(getent passwd $STUDENT | cut -d ":" -f 5) <$STUDENT>" >> $GRADEFILE
-    echo "FILES:      $STUDENTLS" >> $GRADEFILE
-    echo "SCORE:      $(score get) / $ASGSCORE ($(($(score get) * 100 / $ASGSCORE))%)" >> $GRADEFILE
-    echo "AVERAGE:  $CLASSAVG / $ASGSCORE ($(($CLASSAVG * 100 / $ASGSCORE))%)" >> $GRADEFILE
+    echo "FILES:    $STUDENTLS" >> $GRADEFILE
+    echo "SCORE:    $(score get) / $ASGSCORE ($(makepercent $(score get) $ASGSCORE)" >> $GRADEFILE
+    echo "AVERAGE:  $CLASSAVG / $ASGSCORE ($(makepercent $CLASSAVG $ASGSCORE)" >> $GRADEFILE
   }
-  forall makeintro
+  ForAll makeintro
   makebreakdown() {
     echo >> $GRADEFILE
     echo "GRADE BREAKDOWN:" >> $GRADEFILE
@@ -156,7 +175,7 @@ compile() {
       cat $DFILE >> $GRADEFILE
     done
   }
-  forall makebreakdown
+  ForAll makebreakdown
   makenotes() {
     echo >> $GRADEFILE
     echo "NOTES:" >> $GRADEFILE
@@ -166,16 +185,16 @@ compile() {
       echo "N/A" >> $GRADEFILE
     fi
   }
-  forall makenotes
+  ForAll makenotes
   makeinfo() {
     echo >> $GRADEFILE
     echo "INFO:" >> $GRADEFILE
     cat $INFOFILE >> $GRADEFILE
   }
   if [[ -e $INFOFILE ]]; then
-    forall makeinfo
+    ForAll makeinfo
   fi
-  forall rm -f $DFILEBLANK
+  ForAll rm -f $DFILEBLANK
 }
 
 export() {
@@ -189,7 +208,7 @@ export() {
     cat $GRADEFILE >> $ALLFILE
     echo "$SEPARATE" >> $ALLFILE
   }
-  forall makeexport
+  ForAll makeexport
 }
 
 mail() {
@@ -210,7 +229,7 @@ mail() {
     fi
     CLASSCOUNT=$(($CLASSCOUNT + 1))
   }
-  forall makemailtime
+  ForAll makemailtime
   echo
   makeprinttime() {
     HOURS=0
@@ -244,7 +263,7 @@ mail() {
   read INPUT
   if [[ $INPUT == "MAIL" ]]; then
     echo "Starting mail"
-    forall makemail
+    ForAll makemail
     echo "Ending mail"
   else
     echo "Canceled mail"
@@ -258,7 +277,7 @@ clean() {
   echo -n "Sign off CLEAN = "
   read INPUT
   if [[ $INPUT == "CLEAN" ]]; then
-    forall rm -rf .*.f
+    ForAll rm -rf .*.f
   fi
 }
 

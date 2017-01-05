@@ -95,7 +95,7 @@ that they will be executed. The `USER` tag specifies (by username) which
 users will execute the script. This may be useful if specific segments
 of grading are assigned to specific users, or if the scripts contain 
 dependencies that not all users have access to. If a script should be 
-executed by everyone, the line should read `# USER all`.
+executed by everyone, the line should read `# USER *`.
 
 A deduction script should write it's output to a file `.d.*.f` in the
 current directory. (The filename for this file is canonically stored in
