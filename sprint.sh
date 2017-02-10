@@ -25,8 +25,6 @@ ForAll() {
     STUDENTDIR=$ASGDIR/$STUDENT
     STUDENT=$(basename $STUDENT /)
     cd $STUDENTDIR
-    #echo "$SEPARATE"
-    #pwd
     $@
   done
 }

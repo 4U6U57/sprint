@@ -1,0 +1,49 @@
+#!/././././bin/./.././bin/././././bash
+
+
+# Global variables
+ExeFull="${BASH_SOURCE[0]}"
+ExeDir="$(cd "$(dirname "$ExeFull")" && pwd)"
+Exe="$(basename "$ExeDir")"
+PwdDir="$(pwd)"
+Pwd=$(basename "$PwdDir")
+ClassDir=$(echo "$PwdDir" | cut -d "/" -f -5)
+Class=$(basename "$ClassDir")
+
+# Standard library functions
+Print() {
+  PrintFlags=""
+  while [[ $1 == "-*" ]]; do
+    PrintFlags+=" $1"
+    shift
+  done
+  [[ $Flags == "*-n*" ]] && PrintPrefix="" || PrintPrefix="$Exe"
+  echo $Flags "$Exe: $@"
+}
+Error() {
+  Print "ERROR: $@"
+}
+
+# Get assignment
+echo "$Exec - faster than running"
+if [[ -d "$ClassDir/$Pwd" && "$Pwd" != "bin" ]]; then
+  Asg="$Pwd"
+  Print "Asg '$Asg' taken from basename of current directory"
+elif [[ ! -z "$1" && -d "$ClassDir/$1" ]]; then
+  Asg="$1"
+  shift
+  Print "Asg '$Asg' taken from first argument of script"
+else
+  Error "No asg provided"
+  exit
+fi
+AsgDir="$ClassDir/$Asg"
+AsgBinDir="$ClassDir/bin/$Asg"
+if [[ ! -d "$AsgDir" ]]; then
+  Error "Asg '$Asg' does not have a submit target"
+  exit 1
+fi
+if [[ ! -d "$AsgBinDir" ]]; then
+  Print "Asg '$Asg' does not have a bin directory, creating"
+  mkdir $AsgBinDir
+fi
